@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "promisedio-uv"
+version = "1.0.1"
+description = "UV loop on promises"
+authors = ["aachurin <aachurin@gmail.com>"]
+license = "MIT License"
+repository = "https://github.com/promisedio/uv"
+build = "build.py"
+packages = [
+    { include = "promisedio" }
+]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+promisedio-promise = "1.0.8"
+
+[tool.poetry.dev-dependencies]
+promisedio-build-environment = ">=1.0.20,<1.1.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

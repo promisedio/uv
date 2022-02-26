@@ -1,0 +1,27 @@
+[
+  {
+    "version": ["3.10.0", "3.10.1", "3.10.2"],
+    "path": "Modules/socketmodule.h",
+    "target": "promisedio/ns/{version}/socketmodule.h",
+    "exclude_c_names": [
+      "sock_addr_t",
+      "PySocketSockObject",
+      "PySocketModule_APIObject"
+    ]
+  },
+  {
+    "version": ["3.10.0", "3.10.1", "3.10.2"],
+    "path": "Modules/socketmodule.c",
+    "target": "promisedio/ns/{version}/socketmodule.c",
+    "c_names": {
+      "makebdaddr": {
+          "ifdef": "USE_BLUETOOTH"
+      },
+      "setbdaddr": {
+          "ifdef": "USE_BLUETOOTH"
+      },
+      "makesockaddr": true,
+      "sock_decode_hostname": true
+    }
+  }
+]
