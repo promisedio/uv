@@ -43,20 +43,6 @@ clear_interval(ob: Timer) -> None
 ```
 Cancel interval previously established by calling _set_interval()_.
 
-```python
-time() -> int
-```
-Get current timestamp in milliseconds.
-
-The timestamp is cached at the start of the event loop tick.
-
-```python
-hrtime() -> int
-```
-Return current high-resolution real time. 
-
-This is expressed in nanoseconds. 
-
 ### fs (File system operations)
 ```python
 close(fd: int) -> Promise[None]
@@ -435,3 +421,17 @@ Close the stream handle.
 run_forever() -> None
 ```
 Run loop.
+
+```python
+time() -> int
+```
+Get current timestamp in milliseconds.
+
+The timestamp is cached at the start of the event loop tick.
+
+```python
+hrtime() -> int
+```
+Return current high-resolution real time. 
+
+This is expressed in nanoseconds. 

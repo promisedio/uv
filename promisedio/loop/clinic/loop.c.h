@@ -7,6 +7,7 @@ PyDoc_STRVAR(loop_run_forever__doc__,
 "--\n"
 "\n"
 "Run loop.\n"
+"\n"
 "");
 
 #define LOOP_RUN_FOREVER_METHODDEF    \
@@ -24,6 +25,10 @@ loop_run_forever(PyObject *module, PyObject *Py_UNUSED(ignored))
 PyDoc_STRVAR(loop_time__doc__,
 "time($module, /)\n"
 "--\n"
+"\n"
+"Get current timestamp in milliseconds.\n"
+"\n"
+"The timestamp is cached at the start of the event loop tick.\n"
 "\n"
 "");
 
@@ -43,6 +48,9 @@ PyDoc_STRVAR(loop_hrtime__doc__,
 "hrtime($module, /)\n"
 "--\n"
 "\n"
+"Return current high-resolution real time. \n"
+"\n"
+"This is expressed in nanoseconds. \n"
 "");
 
 #define LOOP_HRTIME_METHODDEF    \
@@ -56,4 +64,4 @@ loop_hrtime(PyObject *module, PyObject *Py_UNUSED(ignored))
 {
     return loop_hrtime_impl(module);
 }
-/*[clinic end generated code: output=5c20cbece97d552b input=a9049054013a1b77]*/
+/*[clinic end generated code: output=f995c529cdce3445 input=a9049054013a1b77]*/
