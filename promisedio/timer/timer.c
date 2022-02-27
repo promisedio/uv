@@ -85,7 +85,6 @@ set_timeout_callback(uv_timer_t *handle)
 static void
 set_promise_timeout_finalizer(PromiseTimeout *handle)
 {
-    // TODO: Maybe reject timeout here???
     Py_XDECREF(handle->promise);
 }
 
@@ -238,6 +237,7 @@ Timer_Start(_ctx_var, PyObject *func, uint64_t timeout, uint64_t repeat)
     } else {
         uv_timer_start(&handle->base, (uv_timer_cb) timer_callback, timeout, 0);
     }
+    uv_unref((uv_handle_t *) &handle->base);
     return (PyObject *) timer;
 }
 
@@ -338,8 +338,8 @@ timermodule_init(PyObject *module)
 {
     _CTX_set_module(module);
     LOG("(%p)", module);
-    Capsule_LOAD("promisedio.promise", PROMISE_API);
-    Capsule_LOAD("promisedio.loop", LOOP_API);
+    Capsule_LOAD("promisedio.promise._promise", PROMISE_API);
+    Capsule_LOAD("promisedio.loop._loop", LOOP_API);
     S(TimerType) = (PyTypeObject *) PyType_FromModuleAndSpec(module, &timer_spec, NULL);
     if (S(TimerType) == NULL)
         return -1;

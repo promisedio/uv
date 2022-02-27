@@ -2,7 +2,9 @@
 
 #define NS_API ns_api_b6c07979596905917a19db92fd539cce
 
-#define NS_API_CAPSULE {\
+typedef void * NS_API__CAPSULE[19];
+
+#define NS_API__EXPORT {\
   [0] = Ns_GetAddrInfo,\
   [1] = Ns_GetNameInfo,\
   [2] = TcpStream_GetSockName,\

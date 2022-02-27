@@ -2,7 +2,9 @@
 
 #define FS_API fs_api_dfd38b909ba0ab654ffd1c14796c70c5
 
-#define FS_API_CAPSULE {\
+typedef void * FS_API__CAPSULE[33];
+
+#define FS_API__EXPORT {\
   [0] = Fs_Stat,\
   [1] = Fs_Lstat,\
   [2] = Fs_Fstat,\

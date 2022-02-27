@@ -1818,8 +1818,8 @@ fsmodule_init(PyObject *module)
 {
     _CTX_set_module(module);
     LOG("(%p)", module);
-    Capsule_LOAD("promisedio.promise", PROMISE_API);
-    Capsule_LOAD("promisedio.loop", LOOP_API);
+    Capsule_LOAD("promisedio.promise._promise", PROMISE_API);
+    Capsule_LOAD("promisedio.loop._loop", LOOP_API);
     return 0;
 }
 

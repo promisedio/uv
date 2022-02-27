@@ -18,7 +18,7 @@ include_directories(promisedio/loop/capsule)
 include_directories(promisedio/timer/capsule)
 include_directories(promisedio/signal/capsule)
 
-add_definitions(-DBUILD_DEBUG_LOG -DBUILD_DEBUG_MEM -DBUILD_DISABLE_FREELISTS)
+add_definitions(-DBUILD_DEBUG_LOG -DBUILD_DEBUG_MEM)
 add_library(promisedio.error SHARED
             promisedio/error/error.c)
 

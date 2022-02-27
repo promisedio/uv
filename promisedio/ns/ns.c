@@ -1372,8 +1372,7 @@ static void
 stream_handshake_timeout(StreamHandle *handle)
 {
     LOG("(%p): handshake timeout", handle);
-    // we must complete current operation here (read or write)
-    Handle_Close(handle);
+//    Handle_Close(handle);
 }
 
 static void
@@ -1644,6 +1643,7 @@ stream_create_new(_ctx_var, Py_ssize_t limit, Py_ssize_t chunk_size, PyObject *s
 static void
 stream_connect_timeout(StreamHandle *handle)
 {
+    LOG("(%p)", handle);
     Handle_Close(handle);
 }
 
@@ -2584,9 +2584,9 @@ nsmodule_init(PyObject *module)
 {
     LOG("(%p)", module);
     _CTX_set_module(module);
-    Capsule_LOAD("promisedio.promise", PROMISE_API);
-    Capsule_LOAD("promisedio.loop", LOOP_API);
-    Capsule_LOAD("promisedio.timer", TIMER_API);
+    Capsule_LOAD("promisedio.promise._promise", PROMISE_API);
+    Capsule_LOAD("promisedio.loop._loop", LOOP_API);
+    Capsule_LOAD("promisedio.timer._timer", TIMER_API);
     return 0;
 }
 

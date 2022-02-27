@@ -123,7 +123,6 @@ loop_run_forever_impl(PyObject *module)
     _CTX_set_module(module);
     if (Promise_StartLoop((unlockloop) loop_unlockloop, _ctx))
         return NULL;
-
     uv_loop_t *loop = Loop_Get(_ctx);
     uv_async_init(loop, &S(wakeup_event), NULL);
     S(wakeup_event_ptr) = &S(wakeup_event);
@@ -217,7 +216,7 @@ loopmodule_init(PyObject *module)
     _CTX_set_module(module);
     LOG("(%p)", module);
     S(is_main_interp) = Py_IsMainInterp();
-    Capsule_LOAD("promisedio.promise", PROMISE_API);
+    Capsule_LOAD("promisedio.promise._promise", PROMISE_API);
     return 0;
 }
 
@@ -248,7 +247,10 @@ loopmodule_exec(PyObject *module)
         return -1;
     }
     if (S(is_main_interp)) {
-        void (*setsig)(void *) = Capsule_GetFunc("promisedio.signal", SIGNAL_API, SIGNAL_SETSIGEVENT_ID);
+        void (*setsig)(void *) = Capsule_GetFunc("promisedio.signal._signal", SIGNAL_API, SIGNAL_SETSIGEVENT_ID);
+        if (!setsig) {
+            return -1;
+        }
         setsig(loop_sigevent);
     }
     return 0;

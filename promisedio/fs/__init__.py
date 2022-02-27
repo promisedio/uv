@@ -1,10 +1,11 @@
 # Copyright (c) 2021-2022 Andrey Churin <aachurin@gmail.com> Promisedio
 
 import os
+import sys
 
 if os.environ.get("PROMISEDIO_DEBUG"):
-    from . _fs_debug import *
-else:
-    from . _fs import *
+    from . import _fs_debug
+    sys.modules[f"{__name__}._fs"] = _fs_debug
 
-del os
+from . _fs import *
+del os, sys
