@@ -14,7 +14,12 @@ async def example1():
         cadata=None
     )
 
-    stream = await ns.open_connection(("209.131.162.45", 443), ssl=context, server_hostname="www.verisig1n.com", timeout=0.2)
+    for x in range(100):
+        try:
+            stream = await ns.open_connection(("209.131.162.45", 443), ssl=context, server_hostname="www.verisign.com",
+                                      timeout=0.2)
+        except timer.TimeoutError:
+            pass
 
     print(stream.getsockname())
     print(stream.getpeername())

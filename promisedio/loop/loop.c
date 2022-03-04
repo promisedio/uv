@@ -1,8 +1,14 @@
 // Copyright (c) 2021-2022 Andrey Churin <aachurin@gmail.com> Promisedio
 
+/*[capsule:name LOOP_API]*/
+/*[capsule:output capsule/promisedio/]*/
+
+/*[capsule:copy]*/
 #include <promisedio_uv.h>
-#include "promisedio/signal.h"
 #include "promisedio/promise.h"
+/*[capsule:endcopy]*/
+
+#include "promisedio/signal.h"
 #include "clinic/loop.c.h"
 
 typedef struct modulestate_s _modulestate;
@@ -91,7 +97,7 @@ create_loop(_ctx_var)
     return 0;
 }
 
-CAPSULE_API(LOOP_API, uv_loop_t *)
+CAPSULE_API(uv_loop_t *)
 Loop_Get(_ctx_var)
 {
     if (!S(loop_ptr)) {
@@ -220,13 +226,20 @@ loopmodule_init(PyObject *module)
     return 0;
 }
 
-#include "loop_export.h"
+/*[capsule:export LOOP_API_FUNCS]*/
+
+/*[capsule:__exportblock__]*/
+#define LOOP_API loop_api_eb88af6ea3ab9016eef7b258104871ed
+#define LOOP_API_FUNCS {\
+  [0] = Loop_Get,\
+}
+/*[capsule:__endexportblock__]*/
 
 static int
 loopmodule_create_api(PyObject *module)
 {
     LOG("(%p)", module);
-    Capsule_CREATE(module, LOOP_API);
+    Capsule_CREATE(module, LOOP_API, LOOP_API_FUNCS);
     return 0;
 }
 

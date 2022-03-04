@@ -3,16 +3,16 @@
 #ifndef CAPSULE_SIGNAL_API
 #define CAPSULE_SIGNAL_API
 
-#include "promisedio_uv.h"
+static int signal_api_38411d0ea922188b27adb85d702ca4e2__LOADED = 0;
+static void *signal_api_38411d0ea922188b27adb85d702ca4e2__API[1];
 
-static int signal_api_4e247f2dad1d0a8160b909b158b7b95e__API_LOADED = 0;
-static void *signal_api_4e247f2dad1d0a8160b909b158b7b95e__API[1];
+#define SIGNAL_API signal_api_38411d0ea922188b27adb85d702ca4e2
 
-#define SIGNAL_API signal_api_4e247f2dad1d0a8160b909b158b7b95e
+#include <promisedio_uv.h>
 
 #define SIGNAL_SETSIGEVENT_ID 0
 #define Signal_SetSigEvent(...) \
-  ((void (*) (sigevent cb))(signal_api_4e247f2dad1d0a8160b909b158b7b95e__API[SIGNAL_SETSIGEVENT_ID]))( \
+  ((void (*) (sigevent cb))(signal_api_38411d0ea922188b27adb85d702ca4e2__API[SIGNAL_SETSIGEVENT_ID]))( \
     __VA_ARGS__)
 
 #endif

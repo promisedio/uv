@@ -14,8 +14,12 @@ define_macros_debug = define_macros_release + [
 
 undef_macros_debug = ["NDEBUG"]
 
+pkg_resources.get_distribution("promisedio-build-environment")
 build_environment_include = pkg_resources.resource_filename("promisedio_build_environment", "include")
+
+pkg_resources.get_distribution("promisedio-promise")
 promise_include = pkg_resources.resource_filename("promisedio.promise", "capsule")
+
 project_capsules = [
     "promisedio/fs/capsule",
     "promisedio/ns/capsule",

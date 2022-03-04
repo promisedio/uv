@@ -14,6 +14,6 @@ async def func1():
 
 
 promise.exec_async(func1())
-loop.run_until_complete()
+loop.run_forever()
 
 

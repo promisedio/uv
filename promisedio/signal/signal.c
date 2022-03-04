@@ -1,8 +1,13 @@
 // Copyright (c) 2021-2022 Andrey Churin <aachurin@gmail.com> Promisedio
 
-#include <promisedio_uv.h>
-#include "clinic/signal.c.h"
+/*[capsule:name SIGNAL_API]*/
+/*[capsule:output capsule/promisedio/]*/
 
+/*[capsule:copy]*/
+#include <promisedio_uv.h>
+/*[capsule:endcopy]*/
+
+#include "clinic/signal.c.h"
 
 typedef struct {
     int is_main_interp;
@@ -55,7 +60,7 @@ signal_handler(int sig_num)
     }
 }
 
-CAPSULE_API(SIGNAL_API, void)
+CAPSULE_API(void)
 Signal_SetSigEvent(sigevent cb)
 {
     _Py_atomic_store(&global_state.sig_ev, (uintptr_t) cb);
@@ -133,13 +138,20 @@ signalmodule_exec(PyObject *module)
     return 0;
 }
 
-#include "signal_export.h"
+/*[capsule:export SIGNAL_API_FUNCS]*/
+
+/*[capsule:__exportblock__]*/
+#define SIGNAL_API signal_api_38411d0ea922188b27adb85d702ca4e2
+#define SIGNAL_API_FUNCS {\
+  [0] = Signal_SetSigEvent,\
+}
+/*[capsule:__endexportblock__]*/
 
 static int
 signalmodule_create_api(PyObject *module)
 {
     LOG("(%p)", module);
-    Capsule_CREATE(module, SIGNAL_API);
+    Capsule_CREATE(module, SIGNAL_API, SIGNAL_API_FUNCS);
     return 0;
 }
 

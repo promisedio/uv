@@ -1,7 +1,13 @@
 // Copyright (c) 2021-2022 Andrey Churin <aachurin@gmail.com> Promisedio
 
+/*[capsule:name FS_API]*/
+/*[capsule:output capsule/promisedio/]*/
+
+/*[capsule:copy]*/
 #include <promisedio_uv.h>
 #include "promisedio/promise.h"
+/*[capsule:endcopy]*/
+
 #include "promisedio/loop.h"
 
 /*[clinic input]
@@ -173,7 +179,7 @@ stat_callback(uv_fs_t *req)
     RELEASE_GIL
 }
 
-CAPSULE_API(FS_API, Promise *)
+CAPSULE_API(Promise *)
 Fs_Stat(_ctx_var, const char *path)
 {
     Loop_SETUP(loop)
@@ -181,7 +187,7 @@ Fs_Stat(_ctx_var, const char *path)
     return promise;
 }
 
-CAPSULE_API(FS_API, Promise *)
+CAPSULE_API(Promise *)
 Fs_Lstat(_ctx_var, const char *path)
 {
     Loop_SETUP(loop)
@@ -208,7 +214,7 @@ fs_stat_impl(PyObject *module, PyObject *path, int follow_symlinks)
     }
 }
 
-CAPSULE_API(FS_API, Promise *)
+CAPSULE_API(Promise *)
 Fs_Fstat(_ctx_var, int fd)
 {
     Loop_SETUP(loop)
@@ -305,7 +311,7 @@ seek_callback(SeekReq *req, int status)
     RELEASE_GIL
 }
 
-CAPSULE_API(FS_API, Promise *)
+CAPSULE_API(Promise *)
 Fs_Seek(_ctx_var, int fd, Py_off_t pos, int how)
 {
     Loop_SETUP(loop)
@@ -332,7 +338,7 @@ fs_seek_impl(PyObject *module, int fd, Py_off_t pos, int how)
     return (PyObject *) Fs_Seek(_ctx, fd, pos, how);
 }
 
-CAPSULE_API(FS_API, Promise *)
+CAPSULE_API(Promise *)
 Fs_Open(_ctx_var, const char *path, int flags, int mode)
 {
     Loop_SETUP(loop)
@@ -575,7 +581,7 @@ read_callback(uv_fs_t *req)
     RELEASE_GIL
 }
 
-CAPSULE_API(FS_API, Promise *)
+CAPSULE_API(Promise *)
 Fs_Read(_ctx_var, int fd, Py_ssize_t size, Py_off_t offset)
 {
     if (size > _PY_READ_MAX) {
@@ -756,7 +762,7 @@ readall_seek_callback(SeekReq *req, int status)
     RELEASE_GIL
 }
 
-CAPSULE_API(FS_API, Promise *)
+CAPSULE_API(Promise *)
 Fs_Readall(_ctx_var, int fd)
 {
     Loop_SETUP(loop)
@@ -819,7 +825,7 @@ write_callback(uv_fs_t *req)
     RELEASE_GIL
 }
 
-CAPSULE_API(FS_API, Promise *)
+CAPSULE_API(Promise *)
 Fs_Write(_ctx_var, int fd, PyObject *data, Py_off_t offset)
 {
     Loop_SETUP(loop)
@@ -853,7 +859,7 @@ fs_write_impl(PyObject *module, int fd, PyObject *data, Py_off_t offset)
     return (PyObject *) Fs_Write(_ctx, fd, data, offset);
 }
 
-CAPSULE_API(FS_API, Promise *)
+CAPSULE_API(Promise *)
 Fs_Close(_ctx_var, int fd)
 {
     Loop_SETUP(loop)
@@ -874,7 +880,7 @@ fs_close_impl(PyObject *module, int fd)
     return (PyObject *) Fs_Close(_ctx, fd);
 }
 
-CAPSULE_API(FS_API, Promise *)
+CAPSULE_API(Promise *)
 Fs_Unlink(_ctx_var, const char *path)
 {
     Loop_SETUP(loop)
@@ -895,7 +901,7 @@ fs_unlink_impl(PyObject *module, PyObject *path)
     return (PyObject *) Fs_Unlink(_ctx, PyBytes_AS_STRING(path));
 }
 
-CAPSULE_API(FS_API, Promise *)
+CAPSULE_API(Promise *)
 Fs_Mkdir(_ctx_var, const char *path, int mode)
 {
     Loop_SETUP(loop)
@@ -917,7 +923,7 @@ fs_mkdir_impl(PyObject *module, PyObject *path, int mode)
     return (PyObject *) Fs_Mkdir(_ctx, PyBytes_AS_STRING(path), mode);
 }
 
-CAPSULE_API(FS_API, Promise *)
+CAPSULE_API(Promise *)
 Fs_Rmdir(_ctx_var, const char *path)
 {
     Loop_SETUP(loop)
@@ -938,7 +944,7 @@ fs_rmdir_impl(PyObject *module, PyObject *path)
     return (PyObject *) Fs_Rmdir(_ctx, PyBytes_AS_STRING(path));
 }
 
-CAPSULE_API(FS_API, Promise *)
+CAPSULE_API(Promise *)
 Fs_Mkdtemp(_ctx_var, const char *tpl)
 {
     Loop_SETUP(loop)
@@ -980,7 +986,7 @@ mkstemp_callback(uv_fs_t *req)
     RELEASE_GIL
 }
 
-CAPSULE_API(FS_API, Promise *)
+CAPSULE_API(Promise *)
 Fs_Mkstemp(_ctx_var, const char *tpl)
 {
     Loop_SETUP(loop)
@@ -1065,7 +1071,7 @@ scandir_callback(uv_fs_t *req)
     RELEASE_GIL
 }
 
-CAPSULE_API(FS_API, Promise *)
+CAPSULE_API(Promise *)
 Fs_Scandir(_ctx_var, const char *path)
 {
     Loop_SETUP(loop)
@@ -1086,7 +1092,7 @@ fs_scandir_impl(PyObject *module, PyObject *path)
     return (PyObject *) Fs_Scandir(_ctx, PyBytes_AS_STRING(path));
 }
 
-CAPSULE_API(FS_API, Promise *)
+CAPSULE_API(Promise *)
 Fs_Rename(_ctx_var, const char *path, const char *new_path)
 {
     Loop_SETUP(loop)
@@ -1108,7 +1114,7 @@ fs_rename_impl(PyObject *module, PyObject *path, PyObject *new_path)
     return (PyObject *) Fs_Rename(_ctx, PyBytes_AS_STRING(path), PyBytes_AS_STRING(new_path));
 }
 
-CAPSULE_API(FS_API, Promise *)
+CAPSULE_API(Promise *)
 Fs_Fsync(_ctx_var, int fd)
 {
     Loop_SETUP(loop)
@@ -1129,7 +1135,7 @@ fs_fsync_impl(PyObject *module, int fd)
     return (PyObject *) Fs_Fsync(_ctx, fd);
 }
 
-CAPSULE_API(FS_API, Promise *)
+CAPSULE_API(Promise *)
 Fs_Ftruncate(_ctx_var, int fd, Py_ssize_t length)
 {
     Loop_SETUP(loop)
@@ -1151,7 +1157,7 @@ fs_ftruncate_impl(PyObject *module, int fd, Py_ssize_t length)
     return (PyObject *) Fs_Ftruncate(_ctx, fd, length);
 }
 
-CAPSULE_API(FS_API, Promise *)
+CAPSULE_API(Promise *)
 Fs_Fdatasync(_ctx_var, int fd)
 {
     Loop_SETUP(loop)
@@ -1172,7 +1178,7 @@ fs_fdatasync_impl(PyObject *module, int fd)
     return (PyObject *) Fs_Fdatasync(_ctx, fd);
 }
 
-CAPSULE_API(FS_API, Promise *)
+CAPSULE_API(Promise *)
 Fs_Copyfile(_ctx_var, const char *path, const char *new_path, int flags)
 {
     Loop_SETUP(loop)
@@ -1196,7 +1202,7 @@ fs_copyfile_impl(PyObject *module, PyObject *path, PyObject *new_path,
     return (PyObject *) Fs_Copyfile(_ctx, PyBytes_AS_STRING(path), PyBytes_AS_STRING(new_path), flags);
 }
 
-CAPSULE_API(FS_API, Promise *)
+CAPSULE_API(Promise *)
 Fs_Sendfile(_ctx_var, int out_fd, int in_fd, Py_off_t in_offset, size_t length)
 {
     Loop_SETUP(loop)
@@ -1221,7 +1227,7 @@ fs_sendfile_impl(PyObject *module, int out_fd, int in_fd, Py_off_t offset,
     return (PyObject *) Fs_Sendfile(_ctx, out_fd, in_fd, offset, count);
 }
 
-CAPSULE_API(FS_API, Promise *)
+CAPSULE_API(Promise *)
 Fs_Access(_ctx_var, const char *path, int mode)
 {
     Loop_SETUP(loop)
@@ -1243,7 +1249,7 @@ fs_access_impl(PyObject *module, PyObject *path, int mode)
     return (PyObject *) Fs_Access(_ctx, PyBytes_AS_STRING(path), mode);
 }
 
-CAPSULE_API(FS_API, Promise *)
+CAPSULE_API(Promise *)
 Fs_Chmod(_ctx_var, const char *path, int mode)
 {
     Loop_SETUP(loop)
@@ -1265,7 +1271,7 @@ fs_chmod_impl(PyObject *module, PyObject *path, int mode)
     return (PyObject *) Fs_Chmod(_ctx, PyBytes_AS_STRING(path), mode);
 }
 
-CAPSULE_API(FS_API, Promise *)
+CAPSULE_API(Promise *)
 Fs_Fchmod(_ctx_var, int fd, int mode)
 {
     Loop_SETUP(loop)
@@ -1287,7 +1293,7 @@ fs_fchmod_impl(PyObject *module, int fd, int mode)
     return (PyObject *) Fs_Fchmod(_ctx, fd, mode);
 }
 
-CAPSULE_API(FS_API, Promise *)
+CAPSULE_API(Promise *)
 Fs_Utime(_ctx_var, const char *path, double atime, double mtime)
 {
     Loop_SETUP(loop)
@@ -1295,7 +1301,7 @@ Fs_Utime(_ctx_var, const char *path, double atime, double mtime)
     return promise;
 }
 
-CAPSULE_API(FS_API, Promise *)
+CAPSULE_API(Promise *)
 Fs_Lutime(_ctx_var, const char *path, double atime, double mtime)
 {
     Loop_SETUP(loop)
@@ -1325,7 +1331,7 @@ fs_utime_impl(PyObject *module, PyObject *path, double atime, double mtime,
     }
 }
 
-CAPSULE_API(FS_API, Promise *)
+CAPSULE_API(Promise *)
 Fs_Futime(_ctx_var, int fd, double atime, double mtime)
 {
     Loop_SETUP(loop)
@@ -1348,7 +1354,7 @@ fs_futime_impl(PyObject *module, int fd, double atime, double mtime)
     return (PyObject *) Fs_Futime(_ctx, fd, atime, mtime);
 }
 
-CAPSULE_API(FS_API, Promise *)
+CAPSULE_API(Promise *)
 Fs_Link(_ctx_var, const char *path, const char *new_path)
 {
     Loop_SETUP(loop)
@@ -1370,7 +1376,7 @@ fs_link_impl(PyObject *module, PyObject *path, PyObject *new_path)
     return (PyObject *) Fs_Link(_ctx, PyBytes_AS_STRING(path), PyBytes_AS_STRING(new_path));
 }
 
-CAPSULE_API(FS_API, Promise *)
+CAPSULE_API(Promise *)
 Fs_Symlink(_ctx_var, const char *path, const char *new_path, int flags)
 {
     Loop_SETUP(loop)
@@ -1395,7 +1401,7 @@ fs_symlink_impl(PyObject *module, PyObject *path, PyObject *new_path,
     return (PyObject *) Fs_Symlink(_ctx, PyBytes_AS_STRING(path), PyBytes_AS_STRING(new_path), flags);
 }
 
-CAPSULE_API(FS_API, Promise *)
+CAPSULE_API(Promise *)
 Fs_Readlink(_ctx_var, const char *path)
 {
     Loop_SETUP(loop)
@@ -1416,7 +1422,7 @@ fs_readlink_impl(PyObject *module, PyObject *path)
     return (PyObject *) Fs_Readlink(_ctx, PyBytes_AS_STRING(path));
 }
 
-CAPSULE_API(FS_API, Promise *)
+CAPSULE_API(Promise *)
 Fs_Chown(_ctx_var, const char *path, uv_uid_t uid, uv_gid_t gid)
 {
 #ifndef MS_WINDOWS
@@ -1429,7 +1435,7 @@ Fs_Chown(_ctx_var, const char *path, uv_uid_t uid, uv_gid_t gid)
 #endif
 }
 
-CAPSULE_API(FS_API, Promise *)
+CAPSULE_API(Promise *)
 Fs_Lchown(_ctx_var, const char *path, uv_uid_t uid, uv_gid_t gid)
 {
 #ifndef MS_WINDOWS
@@ -1464,7 +1470,7 @@ fs_chown_impl(PyObject *module, PyObject *path, uid_t uid, gid_t gid,
     }
 }
 
-CAPSULE_API(FS_API, Promise *)
+CAPSULE_API(Promise *)
 Fs_Fchown(_ctx_var, int fd, uv_uid_t uid, uv_gid_t gid)
 {
 #ifndef MS_WINDOWS
@@ -1886,13 +1892,52 @@ fsmodule_init_types_and_constants(PyObject *module)
     return 0;
 }
 
-#include "fs_export.h"
+/*[capsule:export FS_API_FUNCS]*/
+
+/*[capsule:__exportblock__]*/
+#define FS_API fs_api_a4e5331fd176c59333d6074116f92ebd
+#define FS_API_FUNCS {\
+  [0] = Fs_Stat,\
+  [1] = Fs_Lstat,\
+  [2] = Fs_Fstat,\
+  [3] = Fs_Seek,\
+  [4] = Fs_Open,\
+  [5] = Fs_Read,\
+  [6] = Fs_Readall,\
+  [7] = Fs_Write,\
+  [8] = Fs_Close,\
+  [9] = Fs_Unlink,\
+  [10] = Fs_Mkdir,\
+  [11] = Fs_Rmdir,\
+  [12] = Fs_Mkdtemp,\
+  [13] = Fs_Mkstemp,\
+  [14] = Fs_Scandir,\
+  [15] = Fs_Rename,\
+  [16] = Fs_Fsync,\
+  [17] = Fs_Ftruncate,\
+  [18] = Fs_Fdatasync,\
+  [19] = Fs_Copyfile,\
+  [20] = Fs_Sendfile,\
+  [21] = Fs_Access,\
+  [22] = Fs_Chmod,\
+  [23] = Fs_Fchmod,\
+  [24] = Fs_Utime,\
+  [25] = Fs_Lutime,\
+  [26] = Fs_Futime,\
+  [27] = Fs_Link,\
+  [28] = Fs_Symlink,\
+  [29] = Fs_Readlink,\
+  [30] = Fs_Chown,\
+  [31] = Fs_Lchown,\
+  [32] = Fs_Fchown,\
+}
+/*[capsule:__endexportblock__]*/
 
 static int
 fsmodule_create_api(PyObject *module)
 {
     LOG("(%p)", module);
-    Capsule_CREATE(module, FS_API);
+    Capsule_CREATE(module, FS_API, FS_API_FUNCS);
     return 0;
 }
 

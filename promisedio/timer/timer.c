@@ -1,10 +1,17 @@
 // Copyright (c) 2021-2022 Andrey Churin (aachurin@gmail.com).
 // This file is part of promisedio
 
+/*[capsule:name TIMER_API]*/
+/*[capsule:output capsule/promisedio/]*/
+
+/*[capsule:copy]*/
 #include <promisedio_uv.h>
 #include "promisedio/promise.h"
+
+typedef void (*timeout_cb)(void* data);
+/*[capsule:endcopy]*/
+
 #include "promisedio/loop.h"
-#include "timer_defs.h"
 #include "clinic/timer.c.h"
 
 typedef struct {
@@ -43,7 +50,7 @@ timeout_finalizer(TimeoutHandle *handle)
     Py_XDECREF(handle->promise);
 }
 
-CAPSULE_API(TIMER_API, Promise *)
+CAPSULE_API(Promise *)
 Timer_Timeout(_ctx_var, uint64_t timeout)
 {
     Loop_SETUP(loop)
@@ -77,7 +84,9 @@ set_timeout_callback(uv_timer_t *handle)
         h->promise->timer = NULL;
         Promise_RejectString(h->promise, S(TimeoutError), "Operation timeout");
         Py_CLEAR(h->promise);
-        h->callback(h->data);
+        if (h->callback) {
+            h->callback(h->data);
+        }
         Handle_Close(h);
     RELEASE_GIL
 }
@@ -88,7 +97,7 @@ set_promise_timeout_finalizer(PromiseTimeout *handle)
     Py_XDECREF(handle->promise);
 }
 
-CAPSULE_API(TIMER_API, void*)
+CAPSULE_API(void *)
 Timer_SetPromiseTimeout(_ctx_var, Promise *promise, uint64_t timeout, timeout_cb callback, void *data)
 {
     Loop_SETUP(loop)
@@ -106,22 +115,36 @@ Timer_SetPromiseTimeout(_ctx_var, Promise *promise, uint64_t timeout, timeout_cb
     return handle;
 }
 
-CAPSULE_API(TIMER_API, void)
+CAPSULE_API(void)
 _Timer_UpdatePromiseTimeout(_ctx_var, Promise *promise, timeout_cb callback)
 {
     assert(promise->timer != NULL);
+    LOG("(%p)", promise);
     PromiseTimeout *handle = (PromiseTimeout *) promise->timer;
     handle->callback = callback;
 }
 
-CAPSULE_API(TIMER_API, void)
+/*[capsule:copy]*/
+#define Timer_UpdatePromiseTimeout(promise, callback)   \
+    if ((promise)->timer)                               \
+        _Timer_UpdatePromiseTimeout(promise, callback)
+/*[capsule:endcopy]*/
+
+CAPSULE_API(void)
 _Timer_CancelPromiseTimeout(Promise *promise)
 {
     assert(promise->timer != NULL);
+    LOG("(%p)", promise);
     PromiseTimeout *handle = (PromiseTimeout *) promise->timer;
     promise->timer = NULL;
     Handle_Close(handle);
 }
+
+/*[capsule:copy]*/
+#define Timer_CancelPromiseTimeout(promise)             \
+    if ((promise)->timer)                               \
+        _Timer_CancelPromiseTimeout(promise)
+/*[capsule:endcopy]*/
 
 /*[clinic input]
 timer.sleep
@@ -214,7 +237,7 @@ timer_finalizer(TimerHandle *handle)
     PyTrack_DECREF(handle->func);
 }
 
-CAPSULE_API(TIMER_API, PyObject *)
+CAPSULE_API(PyObject *)
 Timer_Start(_ctx_var, PyObject *func, uint64_t timeout, uint64_t repeat)
 {
     Loop_SETUP(loop)
@@ -241,7 +264,7 @@ Timer_Start(_ctx_var, PyObject *func, uint64_t timeout, uint64_t repeat)
     return (PyObject *) timer;
 }
 
-CAPSULE_API(TIMER_API, int)
+CAPSULE_API(int)
 Timer_Stop(_ctx_var, PyObject *ob)
 {
     if (Py_TYPE(ob) != S(TimerType)) {
@@ -346,16 +369,33 @@ timermodule_init(PyObject *module)
     S(TimeoutError) = PyErr_NewException("promisedio.timer.TimeoutError", PyExc_Exception, NULL);
     if (!S(TimeoutError))
         return -1;
+    PyObject *d = PyModule_GetDict(module);
+    if (PyDict_SetItemString(d, "Timer", (PyObject *) S(TimerType)) < 0)
+        return -1;
+    if (PyDict_SetItemString(d, "TimeoutError", S(TimeoutError)) < 0)
+        return -1;
     return 0;
 }
 
-#include "timer_export.h"
+/*[capsule:export TIMER_API_FUNCS]*/
+
+/*[capsule:__exportblock__]*/
+#define TIMER_API timer_api_87628408d36b58dc79fc1e618b008598
+#define TIMER_API_FUNCS {\
+  [0] = Timer_Timeout,\
+  [1] = Timer_SetPromiseTimeout,\
+  [2] = _Timer_UpdatePromiseTimeout,\
+  [3] = _Timer_CancelPromiseTimeout,\
+  [4] = Timer_Start,\
+  [5] = Timer_Stop,\
+}
+/*[capsule:__endexportblock__]*/
 
 static int
 timermodule_create_api(PyObject *module)
 {
     LOG("(%p)", module);
-    Capsule_CREATE(module, TIMER_API);
+    Capsule_CREATE(module, TIMER_API, TIMER_API_FUNCS);
     return 0;
 }
 
@@ -366,6 +406,7 @@ timermodule_traverse(PyObject *module, visitproc visit, void *arg)
     Capsule_VISIT(LOOP_API);
     Capsule_VISIT(PROMISE_API);
     Py_VISIT(S(TimerType));
+    Py_VISIT(S(TimeoutError));
     return 0;
 }
 
@@ -374,6 +415,7 @@ timermodule_clear(PyObject *module)
 {
     _CTX_set_module(module);
     Py_CLEAR(S(TimerType));
+    Py_CLEAR(S(TimeoutError));
     return 0;
 }
 

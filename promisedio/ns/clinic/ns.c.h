@@ -279,7 +279,7 @@ exit:
 }
 
 PyDoc_STRVAR(ns_TcpStream_set_tcp_nodelay__doc__,
-"set_tcp_nodelay($self, /, enabled)\n"
+"set_tcp_nodelay($self, enabled, /)\n"
 "--\n"
 "\n"
 "Enable/disable TCP_NODELAY, which disables Nagle\'s algorithm.\n"
@@ -287,25 +287,18 @@ PyDoc_STRVAR(ns_TcpStream_set_tcp_nodelay__doc__,
 "");
 
 #define NS_TCPSTREAM_SET_TCP_NODELAY_METHODDEF    \
-    {"set_tcp_nodelay", (PyCFunction)(void(*)(void))ns_TcpStream_set_tcp_nodelay, METH_FASTCALL|METH_KEYWORDS, ns_TcpStream_set_tcp_nodelay__doc__},
+    {"set_tcp_nodelay", (PyCFunction)ns_TcpStream_set_tcp_nodelay, METH_O, ns_TcpStream_set_tcp_nodelay__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
 ns_TcpStream_set_tcp_nodelay_impl(Stream *self, int enabled);
 
 static PyObject *
-ns_TcpStream_set_tcp_nodelay(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+ns_TcpStream_set_tcp_nodelay(Stream *self, PyObject *arg)
 {
     PyObject *return_value = NULL;
-    static const char * const _keywords[] = {"enabled", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "set_tcp_nodelay", 0};
-    PyObject *argsbuf[1];
     int enabled;
 
-    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
-    if (!args) {
-        goto exit;
-    }
-    enabled = _PyLong_AsInt(args[0]);
+    enabled = _PyLong_AsInt(arg);
     if (enabled == -1 && PyErr_Occurred()) {
         goto exit;
     }
@@ -316,7 +309,7 @@ exit:
 }
 
 PyDoc_STRVAR(ns_TcpStream_set_tcp_keepalive__doc__,
-"set_tcp_keepalive($self, /, delay)\n"
+"set_tcp_keepalive($self, delay, /)\n"
 "--\n"
 "\n"
 "Enable/disable TCP keep-alive. Set zero to disable.\n"
@@ -324,25 +317,18 @@ PyDoc_STRVAR(ns_TcpStream_set_tcp_keepalive__doc__,
 "");
 
 #define NS_TCPSTREAM_SET_TCP_KEEPALIVE_METHODDEF    \
-    {"set_tcp_keepalive", (PyCFunction)(void(*)(void))ns_TcpStream_set_tcp_keepalive, METH_FASTCALL|METH_KEYWORDS, ns_TcpStream_set_tcp_keepalive__doc__},
+    {"set_tcp_keepalive", (PyCFunction)ns_TcpStream_set_tcp_keepalive, METH_O, ns_TcpStream_set_tcp_keepalive__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
 ns_TcpStream_set_tcp_keepalive_impl(Stream *self, int delay);
 
 static PyObject *
-ns_TcpStream_set_tcp_keepalive(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+ns_TcpStream_set_tcp_keepalive(Stream *self, PyObject *arg)
 {
     PyObject *return_value = NULL;
-    static const char * const _keywords[] = {"delay", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "set_tcp_keepalive", 0};
-    PyObject *argsbuf[1];
     int delay;
 
-    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
-    if (!args) {
-        goto exit;
-    }
-    delay = _PyLong_AsInt(args[0]);
+    delay = _PyLong_AsInt(arg);
     if (delay == -1 && PyErr_Occurred()) {
         goto exit;
     }
@@ -393,7 +379,7 @@ ns_TcpStream_getsockname(Stream *self, PyObject *Py_UNUSED(ignored))
 }
 
 PyDoc_STRVAR(ns_TcpStream_write__doc__,
-"write($self, /, data)\n"
+"write($self, data, /)\n"
 "--\n"
 "\n"
 "Write data to the stream.\n"
@@ -401,33 +387,10 @@ PyDoc_STRVAR(ns_TcpStream_write__doc__,
 "");
 
 #define NS_TCPSTREAM_WRITE_METHODDEF    \
-    {"write", (PyCFunction)(void(*)(void))ns_TcpStream_write, METH_FASTCALL|METH_KEYWORDS, ns_TcpStream_write__doc__},
-
-Py_LOCAL_INLINE(PyObject *)
-ns_TcpStream_write_impl(Stream *self, PyObject *data);
-
-static PyObject *
-ns_TcpStream_write(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
-{
-    PyObject *return_value = NULL;
-    static const char * const _keywords[] = {"data", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "write", 0};
-    PyObject *argsbuf[1];
-    PyObject *data;
-
-    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
-    if (!args) {
-        goto exit;
-    }
-    data = args[0];
-    return_value = ns_TcpStream_write_impl(self, data);
-
-exit:
-    return return_value;
-}
+    {"write", (PyCFunction)ns_TcpStream_write, METH_O, ns_TcpStream_write__doc__},
 
 PyDoc_STRVAR(ns_TcpStream_read__doc__,
-"read($self, /, n=-1)\n"
+"read($self, /, n=-1, *, timeout=0.0)\n"
 "--\n"
 "\n"
 "Read up to n bytes. \n"
@@ -441,17 +404,18 @@ PyDoc_STRVAR(ns_TcpStream_read__doc__,
     {"read", (PyCFunction)(void(*)(void))ns_TcpStream_read, METH_FASTCALL|METH_KEYWORDS, ns_TcpStream_read__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-ns_TcpStream_read_impl(Stream *self, Py_ssize_t n);
+ns_TcpStream_read_impl(Stream *self, Py_ssize_t n, double timeout);
 
 static PyObject *
 ns_TcpStream_read(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
-    static const char * const _keywords[] = {"n", NULL};
+    static const char * const _keywords[] = {"n", "timeout", NULL};
     static _PyArg_Parser _parser = {NULL, _keywords, "read", 0};
-    PyObject *argsbuf[1];
+    PyObject *argsbuf[2];
     Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 0;
     Py_ssize_t n = -1;
+    double timeout = 0.0;
 
     args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 0, 1, 0, argsbuf);
     if (!args) {
@@ -460,18 +424,37 @@ ns_TcpStream_read(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyObjec
     if (!noptargs) {
         goto skip_optional_pos;
     }
-    if (!ssize_t_converter(args[0], &n)) {
-        goto exit;
+    if (args[0]) {
+        if (!ssize_t_converter(args[0], &n)) {
+            goto exit;
+        }
+        if (!--noptargs) {
+            goto skip_optional_pos;
+        }
     }
 skip_optional_pos:
-    return_value = ns_TcpStream_read_impl(self, n);
+    if (!noptargs) {
+        goto skip_optional_kwonly;
+    }
+    if (PyFloat_CheckExact(args[1])) {
+        timeout = PyFloat_AS_DOUBLE(args[1]);
+    }
+    else
+    {
+        timeout = PyFloat_AsDouble(args[1]);
+        if (timeout == -1.0 && PyErr_Occurred()) {
+            goto exit;
+        }
+    }
+skip_optional_kwonly:
+    return_value = ns_TcpStream_read_impl(self, n, timeout);
 
 exit:
     return return_value;
 }
 
 PyDoc_STRVAR(ns_TcpStream_readexactly__doc__,
-"readexactly($self, /, n)\n"
+"readexactly($self, /, n, *, timeout=0.0)\n"
 "--\n"
 "\n"
 "Read exactly n bytes.\n"
@@ -487,16 +470,18 @@ PyDoc_STRVAR(ns_TcpStream_readexactly__doc__,
     {"readexactly", (PyCFunction)(void(*)(void))ns_TcpStream_readexactly, METH_FASTCALL|METH_KEYWORDS, ns_TcpStream_readexactly__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-ns_TcpStream_readexactly_impl(Stream *self, Py_ssize_t n);
+ns_TcpStream_readexactly_impl(Stream *self, Py_ssize_t n, double timeout);
 
 static PyObject *
 ns_TcpStream_readexactly(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
-    static const char * const _keywords[] = {"n", NULL};
+    static const char * const _keywords[] = {"n", "timeout", NULL};
     static _PyArg_Parser _parser = {NULL, _keywords, "readexactly", 0};
-    PyObject *argsbuf[1];
+    PyObject *argsbuf[2];
+    Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 1;
     Py_ssize_t n;
+    double timeout = 0.0;
 
     args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
     if (!args) {
@@ -505,14 +490,28 @@ ns_TcpStream_readexactly(Stream *self, PyObject *const *args, Py_ssize_t nargs, 
     if (!ssize_t_converter(args[0], &n)) {
         goto exit;
     }
-    return_value = ns_TcpStream_readexactly_impl(self, n);
+    if (!noptargs) {
+        goto skip_optional_kwonly;
+    }
+    if (PyFloat_CheckExact(args[1])) {
+        timeout = PyFloat_AS_DOUBLE(args[1]);
+    }
+    else
+    {
+        timeout = PyFloat_AsDouble(args[1]);
+        if (timeout == -1.0 && PyErr_Occurred()) {
+            goto exit;
+        }
+    }
+skip_optional_kwonly:
+    return_value = ns_TcpStream_readexactly_impl(self, n, timeout);
 
 exit:
     return return_value;
 }
 
 PyDoc_STRVAR(ns_TcpStream_readuntil__doc__,
-"readuntil($self, /, c)\n"
+"readuntil($self, /, c, *, timeout=0.0)\n"
 "--\n"
 "\n"
 "Read data from the stream until c is found.\n"
@@ -529,16 +528,18 @@ PyDoc_STRVAR(ns_TcpStream_readuntil__doc__,
     {"readuntil", (PyCFunction)(void(*)(void))ns_TcpStream_readuntil, METH_FASTCALL|METH_KEYWORDS, ns_TcpStream_readuntil__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-ns_TcpStream_readuntil_impl(Stream *self, char c);
+ns_TcpStream_readuntil_impl(Stream *self, char c, double timeout);
 
 static PyObject *
 ns_TcpStream_readuntil(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
-    static const char * const _keywords[] = {"c", NULL};
+    static const char * const _keywords[] = {"c", "timeout", NULL};
     static _PyArg_Parser _parser = {NULL, _keywords, "readuntil", 0};
-    PyObject *argsbuf[1];
+    PyObject *argsbuf[2];
+    Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 1;
     char c;
+    double timeout = 0.0;
 
     args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
     if (!args) {
@@ -554,7 +555,21 @@ ns_TcpStream_readuntil(Stream *self, PyObject *const *args, Py_ssize_t nargs, Py
         _PyArg_BadArgument("readuntil", "argument 'c'", "a byte string of length 1", args[0]);
         goto exit;
     }
-    return_value = ns_TcpStream_readuntil_impl(self, c);
+    if (!noptargs) {
+        goto skip_optional_kwonly;
+    }
+    if (PyFloat_CheckExact(args[1])) {
+        timeout = PyFloat_AS_DOUBLE(args[1]);
+    }
+    else
+    {
+        timeout = PyFloat_AsDouble(args[1]);
+        if (timeout == -1.0 && PyErr_Occurred()) {
+            goto exit;
+        }
+    }
+skip_optional_kwonly:
+    return_value = ns_TcpStream_readuntil_impl(self, c, timeout);
 
 exit:
     return return_value;
@@ -603,7 +618,7 @@ ns_TcpStream_close(Stream *self, PyObject *Py_UNUSED(ignored))
 PyDoc_STRVAR(ns_open_unix_connection__doc__,
 "open_unix_connection($module, /, path, *, limit=-1, chunk_size=-1,\n"
 "                     ssl=<unrepresentable>,\n"
-"                     server_hostname=<unrepresentable>)\n"
+"                     server_hostname=<unrepresentable>, timeout=0.0)\n"
 "--\n"
 "\n"
 "");
@@ -614,21 +629,23 @@ PyDoc_STRVAR(ns_open_unix_connection__doc__,
 Py_LOCAL_INLINE(PyObject *)
 ns_open_unix_connection_impl(PyObject *module, PyObject *path,
                              Py_ssize_t limit, Py_ssize_t chunk_size,
-                             PyObject *ssl, PyObject *server_hostname);
+                             PyObject *ssl, PyObject *server_hostname,
+                             double timeout);
 
 static PyObject *
 ns_open_unix_connection(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
-    static const char * const _keywords[] = {"path", "limit", "chunk_size", "ssl", "server_hostname", NULL};
+    static const char * const _keywords[] = {"path", "limit", "chunk_size", "ssl", "server_hostname", "timeout", NULL};
     static _PyArg_Parser _parser = {NULL, _keywords, "open_unix_connection", 0};
-    PyObject *argsbuf[5];
+    PyObject *argsbuf[6];
     Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 1;
     PyObject *path = NULL;
     Py_ssize_t limit = -1;
     Py_ssize_t chunk_size = -1;
     PyObject *ssl = NULL;
     PyObject *server_hostname = NULL;
+    double timeout = 0.0;
 
     args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
     if (!args) {
@@ -684,9 +701,24 @@ ns_open_unix_connection(PyObject *module, PyObject *const *args, Py_ssize_t narg
             goto skip_optional_kwonly;
         }
     }
-    server_hostname = args[4];
+    if (args[4]) {
+        server_hostname = args[4];
+        if (!--noptargs) {
+            goto skip_optional_kwonly;
+        }
+    }
+    if (PyFloat_CheckExact(args[5])) {
+        timeout = PyFloat_AS_DOUBLE(args[5]);
+    }
+    else
+    {
+        timeout = PyFloat_AsDouble(args[5]);
+        if (timeout == -1.0 && PyErr_Occurred()) {
+            goto exit;
+        }
+    }
 skip_optional_kwonly:
-    return_value = ns_open_unix_connection_impl(module, path, limit, chunk_size, ssl, server_hostname);
+    return_value = ns_open_unix_connection_impl(module, path, limit, chunk_size, ssl, server_hostname, timeout);
 
 exit:
     /* Cleanup for path */
@@ -732,39 +764,16 @@ ns_UnixStream_getsockname(Stream *self, PyObject *Py_UNUSED(ignored))
 }
 
 PyDoc_STRVAR(ns_UnixStream_write__doc__,
-"write($self, /, data)\n"
+"write($self, data, /)\n"
 "--\n"
 "\n"
 "");
 
 #define NS_UNIXSTREAM_WRITE_METHODDEF    \
-    {"write", (PyCFunction)(void(*)(void))ns_UnixStream_write, METH_FASTCALL|METH_KEYWORDS, ns_UnixStream_write__doc__},
-
-Py_LOCAL_INLINE(PyObject *)
-ns_UnixStream_write_impl(Stream *self, PyObject *data);
-
-static PyObject *
-ns_UnixStream_write(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
-{
-    PyObject *return_value = NULL;
-    static const char * const _keywords[] = {"data", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "write", 0};
-    PyObject *argsbuf[1];
-    PyObject *data;
-
-    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
-    if (!args) {
-        goto exit;
-    }
-    data = args[0];
-    return_value = ns_UnixStream_write_impl(self, data);
-
-exit:
-    return return_value;
-}
+    {"write", (PyCFunction)ns_UnixStream_write, METH_O, ns_UnixStream_write__doc__},
 
 PyDoc_STRVAR(ns_UnixStream_read__doc__,
-"read($self, /, n=-1)\n"
+"read($self, /, n=-1, *, timeout=0.0)\n"
 "--\n"
 "\n"
 "");
@@ -773,17 +782,18 @@ PyDoc_STRVAR(ns_UnixStream_read__doc__,
     {"read", (PyCFunction)(void(*)(void))ns_UnixStream_read, METH_FASTCALL|METH_KEYWORDS, ns_UnixStream_read__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-ns_UnixStream_read_impl(Stream *self, Py_ssize_t n);
+ns_UnixStream_read_impl(Stream *self, Py_ssize_t n, double timeout);
 
 static PyObject *
 ns_UnixStream_read(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
-    static const char * const _keywords[] = {"n", NULL};
+    static const char * const _keywords[] = {"n", "timeout", NULL};
     static _PyArg_Parser _parser = {NULL, _keywords, "read", 0};
-    PyObject *argsbuf[1];
+    PyObject *argsbuf[2];
     Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 0;
     Py_ssize_t n = -1;
+    double timeout = 0.0;
 
     args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 0, 1, 0, argsbuf);
     if (!args) {
@@ -792,18 +802,37 @@ ns_UnixStream_read(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyObje
     if (!noptargs) {
         goto skip_optional_pos;
     }
-    if (!ssize_t_converter(args[0], &n)) {
-        goto exit;
+    if (args[0]) {
+        if (!ssize_t_converter(args[0], &n)) {
+            goto exit;
+        }
+        if (!--noptargs) {
+            goto skip_optional_pos;
+        }
     }
 skip_optional_pos:
-    return_value = ns_UnixStream_read_impl(self, n);
+    if (!noptargs) {
+        goto skip_optional_kwonly;
+    }
+    if (PyFloat_CheckExact(args[1])) {
+        timeout = PyFloat_AS_DOUBLE(args[1]);
+    }
+    else
+    {
+        timeout = PyFloat_AsDouble(args[1]);
+        if (timeout == -1.0 && PyErr_Occurred()) {
+            goto exit;
+        }
+    }
+skip_optional_kwonly:
+    return_value = ns_UnixStream_read_impl(self, n, timeout);
 
 exit:
     return return_value;
 }
 
 PyDoc_STRVAR(ns_UnixStream_readexactly__doc__,
-"readexactly($self, /, n)\n"
+"readexactly($self, /, n, *, timeout=0.0)\n"
 "--\n"
 "\n"
 "");
@@ -812,16 +841,18 @@ PyDoc_STRVAR(ns_UnixStream_readexactly__doc__,
     {"readexactly", (PyCFunction)(void(*)(void))ns_UnixStream_readexactly, METH_FASTCALL|METH_KEYWORDS, ns_UnixStream_readexactly__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-ns_UnixStream_readexactly_impl(Stream *self, Py_ssize_t n);
+ns_UnixStream_readexactly_impl(Stream *self, Py_ssize_t n, double timeout);
 
 static PyObject *
 ns_UnixStream_readexactly(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
-    static const char * const _keywords[] = {"n", NULL};
+    static const char * const _keywords[] = {"n", "timeout", NULL};
     static _PyArg_Parser _parser = {NULL, _keywords, "readexactly", 0};
-    PyObject *argsbuf[1];
+    PyObject *argsbuf[2];
+    Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 1;
     Py_ssize_t n;
+    double timeout = 0.0;
 
     args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
     if (!args) {
@@ -830,14 +861,28 @@ ns_UnixStream_readexactly(Stream *self, PyObject *const *args, Py_ssize_t nargs,
     if (!ssize_t_converter(args[0], &n)) {
         goto exit;
     }
-    return_value = ns_UnixStream_readexactly_impl(self, n);
+    if (!noptargs) {
+        goto skip_optional_kwonly;
+    }
+    if (PyFloat_CheckExact(args[1])) {
+        timeout = PyFloat_AS_DOUBLE(args[1]);
+    }
+    else
+    {
+        timeout = PyFloat_AsDouble(args[1]);
+        if (timeout == -1.0 && PyErr_Occurred()) {
+            goto exit;
+        }
+    }
+skip_optional_kwonly:
+    return_value = ns_UnixStream_readexactly_impl(self, n, timeout);
 
 exit:
     return return_value;
 }
 
 PyDoc_STRVAR(ns_UnixStream_readuntil__doc__,
-"readuntil($self, /, c)\n"
+"readuntil($self, /, c, *, timeout=0.0)\n"
 "--\n"
 "\n"
 "");
@@ -846,16 +891,18 @@ PyDoc_STRVAR(ns_UnixStream_readuntil__doc__,
     {"readuntil", (PyCFunction)(void(*)(void))ns_UnixStream_readuntil, METH_FASTCALL|METH_KEYWORDS, ns_UnixStream_readuntil__doc__},
 
 Py_LOCAL_INLINE(PyObject *)
-ns_UnixStream_readuntil_impl(Stream *self, char c);
+ns_UnixStream_readuntil_impl(Stream *self, char c, double timeout);
 
 static PyObject *
 ns_UnixStream_readuntil(Stream *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
-    static const char * const _keywords[] = {"c", NULL};
+    static const char * const _keywords[] = {"c", "timeout", NULL};
     static _PyArg_Parser _parser = {NULL, _keywords, "readuntil", 0};
-    PyObject *argsbuf[1];
+    PyObject *argsbuf[2];
+    Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 1;
     char c;
+    double timeout = 0.0;
 
     args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
     if (!args) {
@@ -871,7 +918,21 @@ ns_UnixStream_readuntil(Stream *self, PyObject *const *args, Py_ssize_t nargs, P
         _PyArg_BadArgument("readuntil", "argument 'c'", "a byte string of length 1", args[0]);
         goto exit;
     }
-    return_value = ns_UnixStream_readuntil_impl(self, c);
+    if (!noptargs) {
+        goto skip_optional_kwonly;
+    }
+    if (PyFloat_CheckExact(args[1])) {
+        timeout = PyFloat_AS_DOUBLE(args[1]);
+    }
+    else
+    {
+        timeout = PyFloat_AsDouble(args[1]);
+        if (timeout == -1.0 && PyErr_Occurred()) {
+            goto exit;
+        }
+    }
+skip_optional_kwonly:
+    return_value = ns_UnixStream_readuntil_impl(self, c, timeout);
 
 exit:
     return return_value;
@@ -1175,4 +1236,4 @@ ns_UnixServer_close(Server *self, PyObject *Py_UNUSED(ignored))
 {
     return ns_UnixServer_close_impl(self);
 }
-/*[clinic end generated code: output=d633bd56a8aaa751 input=a9049054013a1b77]*/
+/*[clinic end generated code: output=e244aca3259fb2a6 input=a9049054013a1b77]*/

@@ -1,8 +1,14 @@
 // Copyright (c) 2021-2022 Andrey Churin <aachurin@gmail.com> Promisedio
 
+/*[capsule:name NS_API]*/
+/*[capsule:output capsule/promisedio/]*/
+
+/*[capsule:copy]*/
 #include <promisedio_uv.h>
-#include "promisedio/loop.h"
 #include "promisedio/promise.h"
+/*[capsule:endcopy]*/
+
+#include "promisedio/loop.h"
 #include "promisedio/timer.h"
 #include "clinic_converters.h"
 
@@ -10,6 +16,13 @@
 module ns
 [clinic start generated code]*/
 /*[clinic end generated code: output=da39a3ee5e6b4b0d input=486bb829615864d0]*/
+
+/*[capsule:copy]*/
+#ifdef CAPSULE_NS_API
+typedef PyObject Stream;
+typedef PyObject Server;
+#endif
+/*[capsule:endcopy]*/
 
 #define READ_BUFFER_SIZE 65536
 
@@ -106,7 +119,7 @@ getaddrinfo_callback(uv_getaddrinfo_t *req, int status, struct addrinfo *res)
     RELEASE_GIL
 }
 
-CAPSULE_API(NS_API, Promise *)
+CAPSULE_API(Promise *)
 Ns_GetAddrInfo(_ctx_var, const char *node, const char *service, int family, int type, int proto, int flags)
 {
     Loop_SETUP(loop)
@@ -185,7 +198,7 @@ getnameinfo_callback(uv_getnameinfo_t *req, int status, const char *hostname, co
     RELEASE_GIL
 }
 
-CAPSULE_API(NS_API, Promise *)
+CAPSULE_API(Promise *)
 Ns_GetNameInfo(_ctx_var, const struct sockaddr *addr, int flags)
 {
     Loop_SETUP(loop)
@@ -603,15 +616,28 @@ stream_clear_sslreading(StreamHandle *handle)
     handle->state.sslreading = 0;
 }
 
+Py_LOCAL_INLINE(unsigned int)
+stream_get_state(StreamHandle *handle)
+{
+    return handle->state.state;
+}
+
 Py_LOCAL_INLINE(int)
 stream_is_write_locked(StreamHandle *handle)
 {
-    LOG("%d %d %d", handle->state.writing, handle->state.sslwriting, handle->state.sslreading);
-    return (
-        ASINT(handle->state.writing) ||
-        ASINT(handle->state.sslwriting) ||
-        ASINT(handle->state.sslreading)
+    int locked = 0;
+    if (stream_get_state(handle) < STATE_ERROR) {
+        locked = (
+            ASINT(handle->state.writing) ||
+                ASINT(handle->state.sslwriting) ||
+                ASINT(handle->state.sslreading)
+        );
+    }
+    LOG(
+        "%d: state=%d, writing=%d, sslwriting=%d, sslreading=%d",
+        locked, handle->state.state, handle->state.writing, handle->state.sslwriting, handle->state.sslreading
     );
+    return locked;
 }
 
 Py_LOCAL_INLINE(void)
@@ -619,12 +645,6 @@ stream_set_state(StreamHandle *handle, int state)
 {
     handle->state.state = state;
     LOG("(%p): %s", handle, STATE_CODE(state));
-}
-
-Py_LOCAL_INLINE(unsigned int)
-stream_get_state(StreamHandle *handle)
-{
-    return handle->state.state;
 }
 
 Py_LOCAL_INLINE(void)
@@ -644,21 +664,19 @@ Py_LOCAL_INLINE(void) stream_write_backlog(StreamHandle *handle);
 Py_LOCAL_INLINE(void)
 stream__set_error(StreamHandle *handle, PyObject *error)
 {
-    if (!error) {
-        error = Py_FetchError();
-    }
-    assert(error != NULL);
-    LOG("(%p, %S)", handle, error);
     stream_stop_reading(handle);
+    if (error) {
+        LOG("(%p, %S)", handle, error);
+        PyException_SetContext(error, handle->error);
+        handle->error = error;
+    }
     stream_set_state(handle, STATE_ERROR);
-    PyException_SetContext(error, handle->error);
-    handle->error = error;
 }
 
 Py_LOCAL_INLINE(void)
 stream_set_error(StreamHandle *handle)
 {
-    stream__set_error(handle, NULL);
+    stream__set_error(handle, Py_FetchError());
 }
 
 Py_LOCAL_INLINE(void)
@@ -940,13 +958,15 @@ sslproto_shutdown(StreamHandle *handle, Promise *promise)
 Py_LOCAL_INLINE(void)
 stream_reject_backlog_item(StreamHandle *handle, Promise *it)
 {
-    if (handle->error) {
-        Promise_Reject(it, handle->error);
-        Py_CLEAR(handle->error);
-    } else if (stream_get_state(handle) == STATE_ERROR) {
-        Promise_RejectUVError(it, PyExc_OSError, UV_EPIPE);
-    } else {
-        Promise_RejectUVError(it, PyExc_OSError, UV_ECANCELED);
+    if (!Promise_WasScheduled(it)) {
+        if (handle->error) {
+            Promise_Reject(it, handle->error);
+            Py_CLEAR(handle->error);
+        } else if (stream_get_state(handle) == STATE_ERROR) {
+            Promise_RejectUVError(it, PyExc_OSError, UV_EPIPE);
+        } else {
+            Promise_RejectUVError(it, PyExc_OSError, UV_ECANCELED);
+        }
     }
     Py_DECREF(it);
     stream_release(handle);
@@ -958,14 +978,11 @@ stream_write_backlog(StreamHandle *handle)
     Promise *it;
     int err;
 
-    int lock = stream_is_write_locked(handle);
-    if (lock) {
-        LOG("(%p): write lock", handle);
+    if (stream_is_write_locked(handle))
         return;
-    }
 
     Chain_PULLALL(it, &handle->write_backlog) {
-        if (stream_get_state(handle) >= STATE_ERROR) {
+        if (stream_get_state(handle) >= STATE_ERROR || Promise_WasScheduled(it)) {
         on_error:
             stream_reject_backlog_item(handle, it);
             continue;
@@ -1221,7 +1238,11 @@ stream_read_backlog(StreamHandle *handle)
     Promise *it;
     int unlimited_read = 0;
     Chain_PULLALL(it, &handle->read_backlog) {
-        if (stream_get_state(handle) >= STATE_ERROR && !handle->incomingbuffer.nbytes) {
+        if (
+            Promise_WasScheduled(it) || (
+                stream_get_state(handle) >= STATE_ERROR && !handle->incomingbuffer.nbytes
+            )
+        ) {
         stream_error:
             stream_reject_backlog_item(handle, it);
             continue;
@@ -1269,12 +1290,19 @@ stream_read_backlog(StreamHandle *handle)
 }
 
 Py_LOCAL_INLINE(Promise *)
-stream_read(StreamHandle *handle, int op, Py_ssize_t n, char c)
+stream_read(StreamHandle *handle, int op, Py_ssize_t n, char c, double timeout)
 {
     _CTX_set(handle);
     Promise *promise = Promise_New();
     if (!promise)
         return NULL;
+
+    if (timeout > 0) {
+        if (!Timer_SetPromiseTimeout(promise, (uint64_t) (timeout * 1000), NULL, handle)) {
+            Py_DECREF(promise);
+            return NULL;
+        }
+    }
 
     *Promise_DATA(promise, streamreadargs) = (streamreadargs) {op, n, c};
     int empty_backlog = Chain_HEAD(&handle->read_backlog) == NULL;
@@ -1372,7 +1400,8 @@ static void
 stream_handshake_timeout(StreamHandle *handle)
 {
     LOG("(%p): handshake timeout", handle);
-//    Handle_Close(handle);
+    stream__set_error(handle, NULL);
+    stream_write_backlog(handle);
 }
 
 static void
@@ -1415,7 +1444,7 @@ stream_check_alive(Stream *stream)
 
 /* Capsule API */
 
-CAPSULE_API(NS_API, PyObject *)
+CAPSULE_API(PyObject *)
 TcpStream_GetSockName(Stream *stream)
 {
     if (stream_check_alive(stream))
@@ -1439,7 +1468,7 @@ TcpStream_GetSockName(Stream *stream)
     return makesockaddr(-1, ((struct sockaddr *) &sa), sa_len, 0);
 }
 
-CAPSULE_API(NS_API, PyObject *)
+CAPSULE_API(PyObject *)
 TcpStream_GetPeerName(Stream *stream)
 {
     if (stream_check_alive(stream))
@@ -1463,7 +1492,7 @@ TcpStream_GetPeerName(Stream *stream)
     return makesockaddr(-1, ((struct sockaddr *) &sa), sa_len, 0);
 }
 
-CAPSULE_API(NS_API, int)
+CAPSULE_API(int)
 TcpStream_SetTcpNoDelay(Stream *stream, int enabled)
 {
     if (stream_check_alive(stream))
@@ -1483,7 +1512,7 @@ TcpStream_SetTcpNoDelay(Stream *stream, int enabled)
     return OK;
 }
 
-CAPSULE_API(NS_API, int)
+CAPSULE_API(int)
 TcpStream_SetTcpKeepAlive(Stream *stream, int delay)
 {
     if (stream_check_alive(stream))
@@ -1503,7 +1532,7 @@ TcpStream_SetTcpKeepAlive(Stream *stream, int delay)
     return OK;
 }
 
-CAPSULE_API(NS_API, Promise *)
+CAPSULE_API(Promise *)
 Stream_Close(Stream *stream)
 {
     if (stream_check_alive(stream))
@@ -1523,7 +1552,7 @@ Stream_Close(Stream *stream)
     return (Promise *) Py_NewRef(promise);
 }
 
-CAPSULE_API(NS_API, Promise *)
+CAPSULE_API(Promise *)
 Stream_Shutdown(Stream *stream)
 {
     if (stream_check_alive(stream))
@@ -1544,7 +1573,7 @@ Stream_Shutdown(Stream *stream)
     return promise;
 }
 
-CAPSULE_API(NS_API, Promise *)
+CAPSULE_API(Promise *)
 Stream_Write(Stream *stream, PyObject *data)
 {
     if (stream_check_alive(stream))
@@ -1571,8 +1600,8 @@ Stream_Write(Stream *stream, PyObject *data)
     return promise;
 }
 
-CAPSULE_API(NS_API, Promise *)
-Stream_Read(Stream *stream, Py_ssize_t n)
+CAPSULE_API(Promise *)
+Stream_Read(Stream *stream, Py_ssize_t n, double timeout)
 {
     if (stream_check_alive(stream))
         return NULL;
@@ -1580,11 +1609,11 @@ Stream_Read(Stream *stream, Py_ssize_t n)
         PyErr_SetString(PyExc_ValueError, "n must be greater than zero");
         return NULL;
     }
-    return stream_read(stream->handle, STREAM_READ_N, n, 0);
+    return stream_read(stream->handle, STREAM_READ_N, n, 0, timeout);
 }
 
-CAPSULE_API(NS_API, Promise *)
-Stream_ReadExactly(Stream *stream, Py_ssize_t n)
+CAPSULE_API(Promise *)
+Stream_ReadExactly(Stream *stream, Py_ssize_t n, double timeout)
 {
     if (stream_check_alive(stream))
         return NULL;
@@ -1592,15 +1621,15 @@ Stream_ReadExactly(Stream *stream, Py_ssize_t n)
         PyErr_SetString(PyExc_ValueError, "n must be greater than zero");
         return NULL;
     }
-    return stream_read(stream->handle, STREAM_READ_EXACTLY, n, 0);
+    return stream_read(stream->handle, STREAM_READ_EXACTLY, n, 0, timeout);
 }
 
-CAPSULE_API(NS_API, Promise *)
-Stream_ReadUntil(Stream *stream, char c)
+CAPSULE_API(Promise *)
+Stream_ReadUntil(Stream *stream, char c, double timeout)
 {
     if (stream_check_alive(stream))
         return NULL;
-    return stream_read(stream->handle, STREAM_READ_UNTIL, 0, c);
+    return stream_read(stream->handle, STREAM_READ_UNTIL, 0, c, timeout);
 }
 
 Py_LOCAL_INLINE(Stream *)
@@ -1647,7 +1676,7 @@ stream_connect_timeout(StreamHandle *handle)
     Handle_Close(handle);
 }
 
-CAPSULE_API(NS_API, Promise *)
+CAPSULE_API(Promise *)
 Stream_OpenConnection(_ctx_var, const struct sockaddr *remote_addr, const struct sockaddr *local_addr,
                       Py_ssize_t limit, Py_ssize_t chunk_size, int nodelay, int keepalive,
                       PyObject *ssl, const char *server_hostname, double timeout)
@@ -1753,12 +1782,13 @@ ns_open_connection_impl(PyObject *module, sockaddr_any *remote_addr,
 /*[clinic input]
 ns.TcpStream.set_tcp_nodelay
     enabled: bool(accept={int})
+    /
 
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
 ns_TcpStream_set_tcp_nodelay_impl(Stream *self, int enabled)
-/*[clinic end generated code: output=56a1b0cb588cb0cf input=f228d670c209c71c]*/
+/*[clinic end generated code: output=56a1b0cb588cb0cf input=fe6907b03ae46262]*/
 {
     if (TcpStream_SetTcpNoDelay(self, enabled)) {
         return NULL;
@@ -1769,12 +1799,13 @@ ns_TcpStream_set_tcp_nodelay_impl(Stream *self, int enabled)
 /*[clinic input]
 ns.TcpStream.set_tcp_keepalive
     delay: int
+    /
 
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
 ns_TcpStream_set_tcp_keepalive_impl(Stream *self, int delay)
-/*[clinic end generated code: output=0764bcbc450955f0 input=fea0246258a79108]*/
+/*[clinic end generated code: output=0764bcbc450955f0 input=d383726a0c8e2f7e]*/
 {
     if (TcpStream_SetTcpKeepAlive(self, delay)) {
         return NULL;
@@ -1809,12 +1840,13 @@ ns_TcpStream_getsockname_impl(Stream *self)
 /*[clinic input]
 ns.TcpStream.write
     data: object
+    /
 
 [clinic start generated code]*/
 
-Py_LOCAL_INLINE(PyObject *)
-ns_TcpStream_write_impl(Stream *self, PyObject *data)
-/*[clinic end generated code: output=9423aff598070b90 input=f51c3fb94b64d42d]*/
+static PyObject *
+ns_TcpStream_write(Stream *self, PyObject *data)
+/*[clinic end generated code: output=54b5f23bcc0eeebb input=67f05ae71307cc7f]*/
 {
     return (PyObject *) Stream_Write(self, data);
 }
@@ -1822,40 +1854,46 @@ ns_TcpStream_write_impl(Stream *self, PyObject *data)
 /*[clinic input]
 ns.TcpStream.read
     n: ssize_t = -1
+    *
+    timeout: double = 0.
 
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-ns_TcpStream_read_impl(Stream *self, Py_ssize_t n)
-/*[clinic end generated code: output=947fd3453039e96a input=e8f37fd8d6a56256]*/
+ns_TcpStream_read_impl(Stream *self, Py_ssize_t n, double timeout)
+/*[clinic end generated code: output=40221ef4eeee1d73 input=f19a0de0b7ceda17]*/
 {
-    return (PyObject *) Stream_Read(self, n);
+    return (PyObject *) Stream_Read(self, n, timeout);
 }
 
 /*[clinic input]
 ns.TcpStream.readexactly
     n: ssize_t
+    *
+    timeout: double = 0.
 
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-ns_TcpStream_readexactly_impl(Stream *self, Py_ssize_t n)
-/*[clinic end generated code: output=895f49979238a17f input=5e96c2f5ae103842]*/
+ns_TcpStream_readexactly_impl(Stream *self, Py_ssize_t n, double timeout)
+/*[clinic end generated code: output=d1a93ff6c585b76c input=eba4a0a87ab5ee42]*/
 {
-    return (PyObject *) Stream_ReadExactly(self, n);
+    return (PyObject *) Stream_ReadExactly(self, n, timeout);
 }
 
 /*[clinic input]
 ns.TcpStream.readuntil
     c: char
+    *
+    timeout: double = 0.
 
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-ns_TcpStream_readuntil_impl(Stream *self, char c)
-/*[clinic end generated code: output=ba29ac419c1099d4 input=faed01d3602600ae]*/
+ns_TcpStream_readuntil_impl(Stream *self, char c, double timeout)
+/*[clinic end generated code: output=ac9a1e44261e33b4 input=f13d9a9a059e8697]*/
 {
-    return (PyObject *) Stream_ReadUntil(self, c);
+    return (PyObject *) Stream_ReadUntil(self, c, timeout);
 }
 
 /*[clinic input]
@@ -1948,9 +1986,9 @@ unixstream_create_new(_ctx_var, Py_ssize_t limit, Py_ssize_t chunk_size, PyObjec
     return self;
 }
 
-CAPSULE_API(NS_API, Promise *)
+CAPSULE_API(Promise *)
 Stream_OpenUnixConnection(_ctx_var, const char *path, Py_ssize_t limit, Py_ssize_t chunk_size,
-                          PyObject *ssl, const char *server_hostname)
+                          PyObject *ssl, const char *server_hostname, double timeout)
 {
     Stream *self = unixstream_create_new(_ctx, limit, chunk_size, ssl, server_hostname, 0);
     if (!self)
@@ -1960,20 +1998,30 @@ Stream_OpenUnixConnection(_ctx_var, const char *path, Py_ssize_t limit, Py_ssize
     Request_SETUP(uv_connect_t, req, promise);
 
     if (!req) {
-        Py_DECREF(self);
-        return NULL;
+        goto error;
     }
 
     StreamHandle *handle = self->handle;
+
+    if (timeout > 0) {
+        if (!Timer_SetPromiseTimeout(promise, (uint64_t) (timeout * 1000), (timeout_cb) stream_connect_timeout, handle)) {
+            Request_DESTROY(req, promise);
+            goto error;
+        }
+    }
 
     BEGIN_ALLOW_THREADS
         uv_pipe_connect(req, (uv_pipe_t *) &handle->base, path, stream_connect_callback);
     END_ALLOW_THREADS
 
     return promise;
+
+error:
+    Py_DECREF(self);
+    return NULL;
 }
 
-CAPSULE_API(NS_API, PyObject *)
+CAPSULE_API(PyObject *)
 UnixStream_GetPeerName(Stream *stream)
 {
     if (stream_check_alive(stream))
@@ -2008,7 +2056,7 @@ UnixStream_GetPeerName(Stream *stream)
     return result;
 }
 
-CAPSULE_API(NS_API, PyObject *)
+CAPSULE_API(PyObject *)
 UnixStream_GetSockName(Stream *stream)
 {
     if (stream_check_alive(stream))
@@ -2055,14 +2103,16 @@ ns.open_unix_connection
     chunk_size: Py_ssize_t = -1
     ssl: object(subclass_of="_CTX_get_module(module)->SSLContextType") = NULL
     server_hostname: object = NULL
+    timeout: double = 0.
 
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
 ns_open_unix_connection_impl(PyObject *module, PyObject *path,
                              Py_ssize_t limit, Py_ssize_t chunk_size,
-                             PyObject *ssl, PyObject *server_hostname)
-/*[clinic end generated code: output=638816ef396382f2 input=300c84e7b1a3b502]*/
+                             PyObject *ssl, PyObject *server_hostname,
+                             double timeout)
+/*[clinic end generated code: output=b1db275488c9fc62 input=ae3dcfc2d072ac70]*/
 {
     _CTX_set_module(module);
     char *hostname = NULL;
@@ -2070,7 +2120,8 @@ ns_open_unix_connection_impl(PyObject *module, PyObject *path,
         if (!PyArg_Parse(server_hostname, "es", "ascii", &hostname))
             return NULL;
     }
-    Promise *ret = Stream_OpenUnixConnection(_ctx, PyBytes_AS_STRING(path), limit, chunk_size, ssl, hostname);
+    Promise *ret = Stream_OpenUnixConnection(_ctx, PyBytes_AS_STRING(path), limit,
+                                             chunk_size, ssl, hostname, timeout);
     if (hostname)
         Py_Free(hostname);
     return (PyObject *) ret;
@@ -2103,12 +2154,13 @@ ns_UnixStream_getsockname_impl(Stream *self)
 /*[clinic input]
 ns.UnixStream.write
     data: object
+    /
 
 [clinic start generated code]*/
 
-Py_LOCAL_INLINE(PyObject *)
-ns_UnixStream_write_impl(Stream *self, PyObject *data)
-/*[clinic end generated code: output=1e04b569c4a1b33b input=fff1ff018a3891a4]*/
+static PyObject *
+ns_UnixStream_write(Stream *self, PyObject *data)
+/*[clinic end generated code: output=8b8d2a34b8d134ed input=972323514a652de1]*/
 {
     return (PyObject *) Stream_Write(self, data);
 }
@@ -2116,40 +2168,46 @@ ns_UnixStream_write_impl(Stream *self, PyObject *data)
 /*[clinic input]
 ns.UnixStream.read
     n: ssize_t = -1
+    *
+    timeout: double = 0.
 
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-ns_UnixStream_read_impl(Stream *self, Py_ssize_t n)
-/*[clinic end generated code: output=488ca99cb5e5311c input=a7dc51222ba584cc]*/
+ns_UnixStream_read_impl(Stream *self, Py_ssize_t n, double timeout)
+/*[clinic end generated code: output=f9469dae142f5591 input=8e6653c124891f01]*/
 {
-    return (PyObject *) Stream_Read(self, n);
+    return (PyObject *) Stream_Read(self, n, timeout);
 }
 
 /*[clinic input]
 ns.UnixStream.readexactly
     n: ssize_t
+    *
+    timeout: double = 0.
 
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-ns_UnixStream_readexactly_impl(Stream *self, Py_ssize_t n)
-/*[clinic end generated code: output=e68e1ffa1e078298 input=f04596e9665d4ea6]*/
+ns_UnixStream_readexactly_impl(Stream *self, Py_ssize_t n, double timeout)
+/*[clinic end generated code: output=884bec7c06f27d72 input=23bb2a7fff76d709]*/
 {
-    return (PyObject *) Stream_ReadExactly(self, n);
+    return (PyObject *) Stream_ReadExactly(self, n, timeout);
 }
 
 /*[clinic input]
 ns.UnixStream.readuntil
     c: char
+    *
+    timeout: double = 0.
 
 [clinic start generated code]*/
 
 Py_LOCAL_INLINE(PyObject *)
-ns_UnixStream_readuntil_impl(Stream *self, char c)
-/*[clinic end generated code: output=76b4bd6837fe0ccc input=4ee17acd0f6bba04]*/
+ns_UnixStream_readuntil_impl(Stream *self, char c, double timeout)
+/*[clinic end generated code: output=5bb7d812d846ff3b input=f73b66e29dd747bc]*/
 {
-    return (PyObject *) Stream_ReadUntil(self, c);
+    return (PyObject *) Stream_ReadUntil(self, c, timeout);
 }
 
 /*[clinic input]
@@ -2295,7 +2353,7 @@ server_listen_callback(uv_stream_t *server, int status)
     RELEASE_GIL
 }
 
-CAPSULE_API(NS_API, Promise *)
+CAPSULE_API(Promise *)
 Stream_ServerClose(Server *server)
 {
     if (!server->handle) {
@@ -2316,7 +2374,7 @@ Stream_ServerClose(Server *server)
     return (Promise *) Py_NewRef(promise);
 }
 
-CAPSULE_API(NS_API, Server *)
+CAPSULE_API(Server *)
 Stream_StartServer(_ctx_var, PyObject *client_connected_cb, const struct sockaddr *addr,
                    Py_ssize_t limit, Py_ssize_t chunk_size, int backlog, int nodelay, int keepalive,
                    int simultaneous_accepts, PyObject *ssl)
@@ -2457,7 +2515,7 @@ static PyType_Spec tcpserver_spec = {
     tcpserver_slots
 };
 
-CAPSULE_API(NS_API, Server *)
+CAPSULE_API(Server *)
 Stream_StartUnixServer(_ctx_var, PyObject *client_connected_cb, const char *path,
                        Py_ssize_t limit, Py_ssize_t chunk_size, int backlog, PyObject *ssl)
 {
@@ -2659,13 +2717,38 @@ finally:
     return ret;
 }
 
-#include "ns_export.h"
+/*[capsule:export NS_API_FUNCS]*/
+
+/*[capsule:__exportblock__]*/
+#define NS_API ns_api_7ab729d4e085e81135827b365bb6af40
+#define NS_API_FUNCS {\
+  [0] = Ns_GetAddrInfo,\
+  [1] = Ns_GetNameInfo,\
+  [2] = TcpStream_GetSockName,\
+  [3] = TcpStream_GetPeerName,\
+  [4] = TcpStream_SetTcpNoDelay,\
+  [5] = TcpStream_SetTcpKeepAlive,\
+  [6] = Stream_Close,\
+  [7] = Stream_Shutdown,\
+  [8] = Stream_Write,\
+  [9] = Stream_Read,\
+  [10] = Stream_ReadExactly,\
+  [11] = Stream_ReadUntil,\
+  [12] = Stream_OpenConnection,\
+  [13] = Stream_OpenUnixConnection,\
+  [14] = UnixStream_GetPeerName,\
+  [15] = UnixStream_GetSockName,\
+  [16] = Stream_ServerClose,\
+  [17] = Stream_StartServer,\
+  [18] = Stream_StartUnixServer,\
+}
+/*[capsule:__endexportblock__]*/
 
 static int
 nsmodule_create_api(PyObject *module)
 {
     LOG("(%p)", module);
-    Capsule_CREATE(module, NS_API);
+    Capsule_CREATE(module, NS_API, NS_API_FUNCS);
     return 0;
 }
 
